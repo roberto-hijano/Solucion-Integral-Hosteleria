@@ -1,0 +1,32 @@
+name: hotel-stack
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hotel}
+      POSTGRES_USER: ${POSTGRES_USER:-hotel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hotel}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    volumes:
+      - ../../services/web:/usr/share/nginx/html:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
